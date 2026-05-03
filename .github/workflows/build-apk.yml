@@ -3,28 +3,38 @@ name: Build Flet APK
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:
+  workflow_dispatch:  # Позволяет запускать вручную из интерфейса GitHub
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: read
+
     steps:
     - uses: actions/checkout@v4
-    
+
+    # 1. Установка Python (версию можно оставить)
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
-    
-    - name: Install dependencies
+
+    # 2. Установка зависимостей из ИСПРАВЛЕННОГО requirements.txt
+    - name: Install Python Dependencies
       run: |
-        pip install flet requests
-    
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    # 3. Сборка APK
+    # 'export PYTHONPATH' - это "костыль", который решает проблему с EOFError,
+    # указывая Python'у, где искать ваш код.
     - name: Build APK
       run: |
+        export PYTHONPATH="${PYTHONPATH}:`pwd`"
         flet build apk --verbose
-    
+
+    # 4. Сохранение готового APK
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
