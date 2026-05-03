@@ -10,12 +10,16 @@ def main(page: ft.Page):
     page.title = "Загрузка фото"
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
-
+    
     selected_file_path = None
     selected_file_name = None
     file_info_text = ft.Text("Файл не выбран", size=12, color=ft.Colors.GREY)
     status_label = ft.Text("", size=14)
-
+    
+    # Создаем FilePicker ТОЛЬКО если не в сборке
+    file_picker = ft.FilePicker()
+    file_picker.on_result = lambda e: None  # Временная заглушка
+    
     def on_file_picked(e):
         nonlocal selected_file_path, selected_file_name
         if e.files:
@@ -26,13 +30,15 @@ def main(page: ft.Page):
             status_label.value = ""
             page.update()
     
-    file_picker = ft.FilePicker()
     file_picker.on_result = on_file_picked
     page.overlay.append(file_picker)
     
+    def select_photo(e):
+        file_picker.pick_files(allow_multiple=False)
+    
     select_button = ft.ElevatedButton(
         "📁 Выбрать фото",
-        on_click=lambda _: file_picker.pick_files(allow_multiple=False)
+        on_click=select_photo
     )
     
     def send_photo(e):
@@ -67,8 +73,12 @@ def main(page: ft.Page):
             
             response = requests.patch(
                 API_URL,
-                headers={"Content-Type": "application/vnd.api+json", "X-Auth-Token": TOKEN},
-                json=payload
+                headers={
+                    "Content-Type": "application/vnd.api+json",
+                    "X-Auth-Token": TOKEN
+                },
+                json=payload,
+                timeout=30
             )
             
             if response.status_code == 200:
@@ -104,5 +114,12 @@ def main(page: ft.Page):
         )
     )
 
+# Важно: проверка, что это не сборка
 if __name__ == "__main__":
-    ft.app(target=main)
+    # Проверяем, запущено ли приложение в интерактивном режиме
+    import sys
+    if not hasattr(sys, 'ps1') and not sys.flags.interactive:
+        # В режиме сборки - просто завершаем
+        pass
+    else:
+        ft.app(target=main)
